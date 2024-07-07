@@ -44,7 +44,6 @@ fun UserNavGraph(
             val userId = backStackEntry.arguments?.getInt("userId")
             // Show user details screen
 
-            Log.d("#####", "userId is : $userId")
             if (userId == null) {
                 // Handle missing user by showing an error dialog
                 UserDetailsScreen(userState = UserDetailsUiState.Error(Exception("UserId is null")))

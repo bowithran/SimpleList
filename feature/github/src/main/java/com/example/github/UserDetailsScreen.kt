@@ -1,5 +1,6 @@
 package com.example.github
 
+import android.util.Log
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
@@ -18,10 +19,10 @@ import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
-import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Alignment.Companion.Center
 import androidx.compose.ui.Modifier
@@ -39,28 +40,27 @@ import com.example.model.UserEvent
 import com.example.model.state.UserDetailsUiState
 import com.example.model.state.UserEventsUiState
 
-
 @Composable
 fun UserDetailsScreen(
     userState: UserDetailsUiState,
-    viewModel: UserViewModel = hiltViewModel()
+    viewModel: UserViewModel = hiltViewModel(),
 ) {
     var errorDetail by remember { mutableStateOf("") }
-    when (val state = userState) {
+    when (userState) {
         is UserDetailsUiState.Success -> {
-            val user = state.user
+            val user = userState.user
             // Handle success
             DetailsView(user = user, viewModel)
         }
 
         is UserDetailsUiState.Error -> {
             // Handle error
-            errorDetail = state.getErrorMessage()
+            errorDetail = userState.getErrorMessage()
         }
 
         is UserDetailsUiState.NotFound -> {
             // Handle not found
-            errorDetail = state.getErrorMessage()
+            errorDetail = userState.getErrorMessage()
         }
 
         else -> {
@@ -74,79 +74,93 @@ fun UserDetailsScreen(
 }
 
 @Composable
-fun DetailsView(user: User, viewModel: UserViewModel) {
-    var expanded by remember { mutableStateOf(false) }
+fun DetailsView(
+    user: User,
+    viewModel: UserViewModel,
+) {
     var events by remember { mutableStateOf<List<UserEvent>?>(null) }
     var isLoading by remember { mutableStateOf(false) }
     Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .padding(16.dp)
-            .background(MaterialTheme.colorScheme.background)
+        modifier =
+            Modifier
+                .fillMaxSize()
+                .padding(16.dp)
+                .background(MaterialTheme.colorScheme.background),
     ) {
         Image(
             painter = rememberAsyncImagePainter(user.avatarUrl),
             contentDescription = null,
-            modifier = Modifier
-                .size(120.dp)
-                .clip(CircleShape)
-                .align(Alignment.CenterHorizontally),
-            contentScale = ContentScale.Crop
+            modifier =
+                Modifier
+                    .size(120.dp)
+                    .clip(CircleShape)
+                    .align(Alignment.CenterHorizontally),
+            contentScale = ContentScale.Crop,
         )
         Spacer(modifier = Modifier.height(16.dp))
         Text(
             text = "Login: ${user.login}",
             style = MaterialTheme.typography.titleLarge,
-            modifier = Modifier.align(Alignment.CenterHorizontally)
+            modifier = Modifier.align(Alignment.CenterHorizontally),
         )
         Text(
             text = "ID: ${user.id}",
             style = MaterialTheme.typography.bodyMedium,
-            modifier = Modifier.align(Alignment.CenterHorizontally)
+            modifier = Modifier.align(Alignment.CenterHorizontally),
         )
         Text(
             text = "Node ID: ${user.nodeId}",
             style = MaterialTheme.typography.bodyMedium,
-            modifier = Modifier.align(Alignment.CenterHorizontally)
+            modifier = Modifier.align(Alignment.CenterHorizontally),
         )
         Text(
             text = "Type: ${user.type}",
             style = MaterialTheme.typography.bodyMedium,
-            modifier = Modifier.align(Alignment.CenterHorizontally)
+            modifier = Modifier.align(Alignment.CenterHorizontally),
         )
         Text(
             text = "Site Admin: ${user.siteAdmin}",
             style = MaterialTheme.typography.bodyMedium,
-            modifier = Modifier.align(Alignment.CenterHorizontally)
+            modifier = Modifier.align(Alignment.CenterHorizontally),
         )
 
         Spacer(modifier = Modifier.height(24.dp))
 
         Column(
             modifier = Modifier.fillMaxWidth(),
-            horizontalAlignment = Alignment.Start
+            horizontalAlignment = Alignment.Start,
         ) {
             user.receivedEventsUrl?.let { url ->
                 ClickableText(
-                    text = AnnotatedString("Received Events URL: $url", spanStyle = SpanStyle(color = Color.Blue, textDecoration = TextDecoration.Underline)),
+                    text =
+                        AnnotatedString(
+                            "Received Events URL: $url",
+                            spanStyle = SpanStyle(color = Color.Blue, textDecoration = TextDecoration.Underline),
+                        ),
                     onClick = {
                         isLoading = true
                         viewModel.getUserEvents(user.login) {
                             isLoading = false
                         }
                         viewModel.userEventsUiState.value.let {
-                            expanded = true
-                            when(it) {
+                            when (it) {
                                 is UserEventsUiState.Success -> {
                                     events = it.user
                                 }
+                                is UserEventsUiState.Error -> {
+                                    // todo Handle error
+                                }
+                                is UserEventsUiState.NotFound -> {
+                                    // todo Handle not found
+                                }
                                 else -> {
                                     // nothing
+                                    // todo Handle empty
                                 }
                             }
                         }
                     },
-                    modifier = Modifier.padding(8.dp)
+                    modifier = Modifier.padding(8.dp),
                 )
             }
 
@@ -154,19 +168,22 @@ fun DetailsView(user: User, viewModel: UserViewModel) {
 
             when {
                 isLoading -> {
+                    Log.d("#####", "loading")
                     Box(
                         modifier = Modifier.fillMaxSize(),
-                        contentAlignment = Center
+                        contentAlignment = Center,
                     ) {
                         CircularProgressIndicator()
                     }
                 }
-                expanded && !events.isNullOrEmpty() -> {
+                !events.isNullOrEmpty() -> {
+                    Log.d("#####", "DetailsView: ${events!!.size}")
                     LazyColumn(
-                        modifier = Modifier
-                            .fillMaxSize()
-                            .background(Color.LightGray)
-                            .padding(8.dp)
+                        modifier =
+                            Modifier
+                                .fillMaxSize()
+                                .background(Color.LightGray)
+                                .padding(8.dp),
                     ) {
                         items(events!!) { event ->
                             EventDetailsComponent(event = event)
@@ -174,6 +191,7 @@ fun DetailsView(user: User, viewModel: UserViewModel) {
                     }
                 }
                 else -> {
+                    Log.d("#####", "others")
                     // nothing
                 }
             }
